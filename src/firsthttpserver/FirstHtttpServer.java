@@ -13,6 +13,7 @@ import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 
 /**
  * @author Lars Mortensen
@@ -30,7 +31,8 @@ public class FirstHtttpServer {
         HttpServer server = HttpServer.create(new InetSocketAddress(ip, port), 0);
         server.createContext("/welcome", new WelcomeHandler());
         server.createContext("/headers", new HeaderHandler());
-        server.createContext("/pages/", new PagesHandler());
+        server.createContext("/pages", new PagesHandler());
+        server.createContext("/parameters", new ParametersHandler());
         server.setExecutor(null); // Use the default executor
         server.start();
         System.out.println("Server started, listening on port: " + port);
@@ -49,7 +51,7 @@ public class FirstHtttpServer {
             sb.append("<meta charset='UTF-8'>\n");
             sb.append("</head>\n");
             sb.append("<body>\n");
-            sb.append("<h2>Welcome to my very first home made Web Server :-)</h2>\n");
+
             sb.append("</body>\n");
             sb.append("</html>\n");
             response = sb.toString();
@@ -66,7 +68,7 @@ public class FirstHtttpServer {
 
         @Override
         public void handle(HttpExchange he) throws IOException {
-            String response = "Welcome to my very first almost home made Web Server :-)";
+
             StringBuilder sb = new StringBuilder();
             sb.append("<!DOCTYPE html>\n");
             sb.append("<html>\n");
@@ -86,13 +88,10 @@ public class FirstHtttpServer {
             sb.append("</table>\n");
             sb.append("</body>\n");
             sb.append("</html>\n");
-            response = sb.toString();
+
             Headers h = he.getResponseHeaders();
             h.add("Content-Type", "text/html");
-            he.sendResponseHeaders(200, response.length());
-            try (PrintWriter pw = new PrintWriter(he.getResponseBody())) {
-                pw.print(response); //What happens if we use a println instead of print --> Explain
-            }
+
         }
     }
 
@@ -100,7 +99,7 @@ public class FirstHtttpServer {
 
         String contentFolder = "public/";
 
-        @Override  
+        @Override
 
         public void handle(HttpExchange he) throws IOException {
             File file = new File(contentFolder + "hej.html");
@@ -111,15 +110,48 @@ public class FirstHtttpServer {
             } catch (IOException ie) {
                 ie.printStackTrace();
             }
-             Headers h = he.getResponseHeaders();
+            Headers h = he.getResponseHeaders();
             h.add("Content-Type", "text/html");
             he.sendResponseHeaders(200, bytesToSend.length);
-           
+
             try (OutputStream os = he.getResponseBody()) {
                 os.write(bytesToSend, 0, bytesToSend.length);
             }
         }
     }
+
+    static class ParametersHandler implements HttpHandler {
+
+        @Override
+        public void handle(HttpExchange he) throws IOException {
+            String response;
+            StringBuilder sb = new StringBuilder();
+            sb.append("<!DOCTYPE html>\n");
+            sb.append("<html>\n");
+            sb.append("<head>\n");
+            sb.append("<title>Parameters</title>\n");
+            sb.append("<meta charset='UTF-8'>\n");
+            sb.append("</head>\n");
+            sb.append("<body>\n");
+
+            sb.append("Method is : " + he.getRequestMethod());
+            
+            sb.append("<br>Get Parameters: " + he.getRequestURI().getQuery());
+            Scanner scan = new Scanner(he.getRequestBody());
+            while (scan.hasNext()) {
+                sb.append("<br>Request body, with Post-parameters: " + scan.nextLine());
+                sb.append("</br>");
+            }
+
+            sb.append("</body>\n");
+            sb.append("</html>\n");
+            response = sb.toString();
+            Headers h = he.getResponseHeaders();
+            h.add("Content-Type", "text/html");
+            he.sendResponseHeaders(200, response.length());
+            try (PrintWriter pw = new PrintWriter(he.getResponseBody())) {
+                pw.print(response); //What happens if we use a println instead of print --> Explain
+            }
+        }
+    }
 }
-
-
